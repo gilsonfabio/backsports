@@ -19,6 +19,11 @@ routes.get('/signIn/:email/:password', UsersController.signIn);
 routes.post('/newuser', UsersController.create);
 routes.put('/solPassword/:email', UsersController.solPassword);
 routes.post('/updAdmPassword', UsersController.updAdmPassword);
+routes.get('/dadUsuario/:idUsr', UsersController.dadUsuario);
+routes.get('/modUsuario/:idUsr', UsersController.modUsuario);
+routes.put('/updUsuario/:idUsr', UsersController.updUsuario);
+routes.post('/newModUsuario', UsersController.newModUsuario);
+routes.get('/loginAdm/:email/:password/:modId', UsersController.loginAdm);
 
 routes.get('/tecnicos', TecnicosController.index);
 routes.get('/loginTec/:email/:password', TecnicosController.signIn);
@@ -37,6 +42,7 @@ routes.get('/eventos', EventosController.index);
 routes.post('/newevento', EventosController.create);
 routes.get('/eveModal/:idMod', EventosController.eveModal);
 routes.get('/dadEvento/:idEve', EventosController.dadEvento);
+routes.put('/updEvento/:idEve', EventosController.updEvento);
 
 routes.get('/equipes', EquipesController.index);
 routes.post('/newequipe', EquipesController.create);

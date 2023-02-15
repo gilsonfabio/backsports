@@ -73,9 +73,13 @@ module.exports = {
         .where('equId', id)
         .join('eventos', 'eveId', 'equipes.equIdEvento')
         .join('tecnicos', 'tecId', 'equipes.equTecnico')
+        .join('atletas', 'atlIdEquipe', 'equipes.equId')
+        .count({qtd: '*'})
         .orderBy('equDescricao')
-        .select(['equipes.*', 'eventos.eveDescricao', 'tecnicos.tecNome', 'tecnicos.tecCelular', 'tecnicos.tecEmail']);
-
+        .select(['equipes.*', 'eventos.eveDescricao', 'eventos.eveNroEquipes', 'tecnicos.tecNome', 'tecnicos.tecCelular', 'tecnicos.tecEmail']);
+         
+        console.log(equipe);
+          
         return response.json(equipe);
     },
 

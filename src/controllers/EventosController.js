@@ -52,4 +52,29 @@ module.exports = {
 
         return response.json(evento);
     },
+
+    async updEvento(request, response) {
+        let id = request.params.idEve;        
+        const {eveModalidade, 
+            eveDescricao,
+            eveAno,
+            eveDatInicial,
+            eveDatFinal,
+            eveNroEquipes,
+            eveGenero,} = request.body;
+
+        await connection('eventos')
+        .where('eveId', id)
+        .update({
+            eveModalidade, 
+            eveDescricao,
+            eveAno,
+            eveDatInicial,
+            eveDatFinal,
+            eveNroEquipes,
+            eveGenero, 
+        });
+           
+        return response.status(204).send();
+    },
 };

@@ -23,7 +23,7 @@ module.exports = {
         const user = await connection('usuarios')
             .where('usrEmail', email)
             .where('usrPassword', encodedVal)
-            .select('usrId', 'usrNome')
+            .select('usrId', 'usrNome', 'usrNivAcesso')
             .first();
           
         if (!user) {
@@ -32,10 +32,65 @@ module.exports = {
 
         return response.json(user);
     },
+
+    async loginAdm(request, response) {
+        let email = request.params.email;
+        let senha = request.params.password;
+        let modalidade = request.params.modId;
+
+        //console.log(email);
+        //console.log(senha);
+
+        var encodedVal = crypto.createHash('md5').update(senha).digest('hex');
+        const user = await connection('usuarios')
+            .where('usrEmail', email)
+            .where('usrPassword', encodedVal)
+            .select('usrId', 'usrNome', 'usrNivAcesso')
+            .first();
+          
+        if (!user) {
+            return response.status(400).json({ error: 'Não encontrou usuário com este ID'});
+        } 
+        let usuario = user.usrId;
+        let nivel = user.usrNivAcesso;
+        let nivLiberado ='9';
+        if (nivel != nivLiberado) {
+            const usrModel = await connection('usrAceModal')
+                .where('aceUsrId', usuario)
+                .where('aceModId', modalidade)
+                .select('*')
+                .first();
+
+            if (!usrModel) {
+                return response.status(404).json({ error: 'Usuário não autorizado para esse módulo'});
+            }
+        }
+
+        return response.json(user);
+    },
     
+    async dadUsuario (request, response) {        
+        let id = request.params.idUsr;
+        const usuario = await connection('usuarios')
+        .where('usrId', id)
+        .select('*');
+
+        return response.json(usuario);
+    },
+
+    async modUsuario (request, response) {        
+        let id = request.params.idUsr;
+        const usuario = await connection('usrAceModal')
+        .where('aceUsrId', id)
+        .join('modalidades', 'modId', 'usrAceModal.aceModId')
+        .select(['usrAceModal.*', 'modalidades.modId', 'modalidades.modDescricao']);
+
+        return response.json(usuario);
+    },
+
     async create(request, response) {
         //console.log(request.body);
-        const {nome, cpf, nascimento, email, celular , password} = request.body;
+        const {nome, cpf, nascimento, email, celular , password, usrNivAcesso} = request.body;
         var status = 'A'; 
         var senha = crypto.createHash('md5').update(password).digest('hex');
         const [usrId] = await connection('usuarios').insert({
@@ -45,11 +100,23 @@ module.exports = {
             usrCelular: celular, 
             usrCpf: cpf, 
             usrNascimento: nascimento, 
+            usrNivAcesso,
             usrStatus: status
         });
            
         return response.json({usrId});
     },
+
+    async newModUsuario(request, response) {
+        const {aceUsrId, aceModId} = request.body;
+ 
+        const [aceId] = await connection('usrAceModal').insert({
+            aceUsrId, 
+            aceModId             
+        });
+           
+        return response.json({aceId});
+    }, 
 
     async solPassword (request, response) {
         let emailUsuario = request.params.email;
@@ -58,7 +125,7 @@ module.exports = {
 
         const user = await connection('usuarios')
             .where('usrEmail', emailUsuario)
-            .select('usrId', 'usrNome')
+            .select('usrId', 'usrNome', 'usrNivAcesso')
             .first();
 
         if (!user) {
@@ -128,6 +195,23 @@ module.exports = {
         console.log(mailSent);
         return response.status(200).send();  
     },    
+
+    async updUsuario(request, response) {
+        let id = request.params.idUsr;         
+        const { usrNome, usrNascimento, usrCpf, usrCelular, usrEmail, usrNivAcesso} = request.body;
+ 
+        await connection('usuarios').where('usrId', id)   
+        .update({
+            usrNome, 
+            usrNascimento, 
+            usrCpf, 
+            usrCelular, 
+            usrEmail, 
+            usrNivAcesso        
+        });
+           
+        return response.status(204).send();
+    },
 
     async updPassword(request, response) {
         let id = request.params.idUsr;         
