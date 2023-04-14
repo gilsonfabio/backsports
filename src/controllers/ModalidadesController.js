@@ -1,14 +1,30 @@
+const crypto = require('crypto');
 const connection = require('../database/connection');
+const nodemailer = require("nodemailer");
+require('dotenv/config');
 
-module.exports = {   
+const jwt = require('jsonwebtoken');
+const {v4:uuidv4} = require ('uuid') ; 
+
+module.exports = {       
+    
     async index (request, response) {
-        const modalidades = await connection('modalidades')        
-        .orderBy('modDescricao')
-        .select('*');
+        const modalidades = await connection('modalidades')
+        .select('modId', 'modDescricao');
     
         return response.json(modalidades);
-    },    
-        
+    },
+    
+    async modUsuario (request, response) {        
+        let id = request.params.idUsr;
+        const usuario = await connection('usrAceModal')
+        .where('aceUsrId', id)
+        .join('modalidades', 'modId', 'usrAceModal.aceModId')
+        .select(['usrAceModal.*', 'modalidades.modId', 'modalidades.modDescricao']);
+
+        return response.json(usuario);
+    },
+
     async create(request, response) {
         console.log(request.body);
         const {modDescricao} = request.body;
@@ -41,4 +57,5 @@ module.exports = {
            
         return response.status(204).send();
     },
+
 };

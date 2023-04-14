@@ -12,7 +12,7 @@ module.exports = {
     },    
         
     async create(request, response) {
-        console.log(request.body);
+        //console.log(request.body);
         const {equDescricao, equIdEvento, equRegiao, equResp, equTecnico, equDirigente} = request.body;
         let status = 'A'; 
         const [equId] = await connection('equipes').insert({
@@ -25,7 +25,7 @@ module.exports = {
             equStatus: status
         });
            
-        return response.json({eveId});
+        return response.json({equId});
     },
 
     async equEvento (request, response) {        
@@ -78,7 +78,7 @@ module.exports = {
         .orderBy('equDescricao')
         .select(['equipes.*', 'eventos.eveDescricao', 'eventos.eveNroEquipes', 'tecnicos.tecNome', 'tecnicos.tecCelular', 'tecnicos.tecEmail']);
          
-        console.log(equipe);
+        //console.log(equipe);
           
         return response.json(equipe);
     },

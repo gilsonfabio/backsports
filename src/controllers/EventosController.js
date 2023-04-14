@@ -3,7 +3,7 @@ const connection = require('../database/connection');
 module.exports = {   
     async index (request, response) {
         const eventos = await connection('eventos')
-        .join('modalidades', 'modId', 'eventos.eveModalidade')
+        .join('modalidades', 'modId', 'eventos.eveIdModalidade')
         .orderBy('eveDatInicial')
         .select(['eventos.*', 'modalidades.modDescricao']);
     
@@ -12,10 +12,10 @@ module.exports = {
         
     async create(request, response) {
         //console.log(request.body);
-        const {eveModalidade, eveDescricao, eveAno, eveDatInicial, eveDatFinal, eveNroEquipes, eveGenero } = request.body;
+        const {eveIdModalidade, eveDescricao, eveAno, eveDatInicial, eveDatFinal, eveNroEquipes, eveGenero } = request.body;
         let status = 'A'; 
         const [eveId] = await connection('eventos').insert({
-            eveModalidade, 
+            eveIdModalidade, 
             eveDescricao, 
             eveAno, 
             eveDatInicial, 
@@ -34,8 +34,8 @@ module.exports = {
         let status = 'A';
         const eventos = await connection('eventos')
         .where('eveStatus', status)
-        .where('eveModalidade', id)
-        .join('modalidades', 'modId', 'eventos.eveModalidade')
+        .where('eveIdModalidade', id)
+        .join('modalidades', 'modId', 'eventos.eveIdModalidade')
         .orderBy('eveDatInicial')
         .select(['eventos.*', 'modalidades.modDescricao']);
 
@@ -46,7 +46,7 @@ module.exports = {
         let id = request.params.idEve;
         const evento = await connection('eventos')
         .where('eveId', id)
-        .join('modalidades', 'modId', 'eventos.eveModalidade')
+        .join('modalidades', 'modId', 'eventos.eveIdModalidade')
         .orderBy('eveDescricao')
         .select(['eventos.*', 'modalidades.modDescricao']);
 
@@ -55,7 +55,7 @@ module.exports = {
 
     async updEvento(request, response) {
         let id = request.params.idEve;        
-        const {eveModalidade, 
+        const {eveIdModalidade, 
             eveDescricao,
             eveAno,
             eveDatInicial,
@@ -66,7 +66,7 @@ module.exports = {
         await connection('eventos')
         .where('eveId', id)
         .update({
-            eveModalidade, 
+            eveIdModalidade, 
             eveDescricao,
             eveAno,
             eveDatInicial,

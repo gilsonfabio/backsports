@@ -69,9 +69,9 @@ module.exports = {
         .where('atlId', id)
         .join('equipes', 'equId', 'atletas.atlIdEquipe')
         .join('eventos', 'eveId', 'equipes.equIdEvento')
-        .join('modalidades', 'modId', 'eventos.eveModalidade')
+        .join('modalidades', 'modId', 'eventos.eveIdModalidade')
         .orderBy('atlNome')
-        .select(['atletas.*', 'equipes.equDescricao', 'eventos.eveDescricao', 'eventos.eveModalidade', 'modalidades.modDescricao']);
+        .select(['atletas.*', 'equipes.equDescricao', 'eventos.eveDescricao', 'eventos.eveIdModalidade', 'modalidades.modDescricao']);
 
         return response.json(atleta);
     },

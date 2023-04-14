@@ -1,56 +1,113 @@
 const crypto = require('crypto');
 const connection = require('../database/connection');
-
 const nodemailer = require("nodemailer");
+require('dotenv/config');
 
-module.exports = {   
-    async index (request, response) {
-        const users = await connection('usuarios')
-        .orderBy('usrNome')
-        .select('*');
-    
-        return response.json(users);
-    },    
-        
+const jwt = require('jsonwebtoken');
+const {v4:uuidv4} = require ('uuid') ; 
+
+module.exports = {       
     async signIn(request, response) {
-        let email = request.params.email;
-        let senha = request.params.password;
-
-        //console.log(email);
-        //console.log(senha);
-
-        var encodedVal = crypto.createHash('md5').update(senha).digest('hex');
+        let email = request.body.email;
+        let senha = request.body.password;
+        let encodedVal = crypto.createHash('md5').update(senha).digest('hex');
+    
         const user = await connection('usuarios')
             .where('usrEmail', email)
             .where('usrPassword', encodedVal)
-            .select('usrId', 'usrNome', 'usrNivAcesso')
+            .select('usrId', 'usrNome', 'usrEmail', 'usrNivAcesso')
             .first();
           
         if (!user) {
             return response.status(400).json({ error: 'Não encontrou usuário com este ID'});
         } 
 
-        return response.json(user);
+        let refreshIdToken = uuidv4(); 
+        //console.log(refreshIdToken);
+                
+        let token = jwt.sign({ id: user.usrId, name: user.usrNome, email: user.usrEmail, nivel: user.usrNivAcesso }, process.env.SECRET_JWT, {
+            expiresIn: "1h"
+        });
+        let refreshToken = jwt.sign({ id: user.usrId, name: user.usrNome, email: user.usrEmail, nivel: user.usrNivAcesso  }, process.env.SECRET_JWT_REFRESH, {
+            expiresIn: "2h" 
+        });
+
+        return response.json({user, token, refreshToken});
+
     },
+
+    async index (request, response) {
+        const users = await connection('usuarios')
+        .orderBy('usrNome')
+        .select('usrId', 'usrNome', 'usrNivAcesso', 'usrEmail');
+    
+        return response.json(users);
+    }, 
+
+    async create(request, response) {
+        //console.log(request.body);
+        const {nome, cpf, nascimento, email, celular , password, nivAcesso} = request.body;
+        var status = 'A'; 
+        var senha = crypto.createHash('md5').update(password).digest('hex');
+        const [usrId] = await connection('usuarios').insert({
+            usrNome: nome, 
+            usrEmail: email, 
+            usrPassword: senha,
+            usrCelular: celular, 
+            usrCpf: cpf, 
+            usrNascimento: nascimento, 
+            usrNivAcesso: nivAcesso,
+            usrStatus: status
+        });
+           
+        return response.json({usrId});
+    },
+    
+    async refreshToken(request, response) {
+        let id = request.body.idUsr;
+    
+        const user = await connection('usuarios')
+            .where('usrId', id)
+            .select('usrId', 'usrNome', 'usrEmail', 'usrNivAcesso')
+            .first();
+          
+        if (!user) {
+            return response.status(400).json({ error: 'Não encontrou usuário com este ID'});
+        } 
+
+        let refreshIdToken = uuidv4(); 
+        
+        //console.log(refreshIdToken);
+                
+        let token = jwt.sign({ id: user.usrId, name: user.usrNome, email: user.usrEmail, nivel: user.usrNivAcesso }, process.env.SECRET_JWT, {
+            expiresIn: "1h" 
+        });
+        let refreshToken = jwt.sign({ id: user.usrId, name: user.usrNome, email: user.usrEmail, nivel: user.usrNivAcesso  }, process.env.SECRET_JWT_REFRESH, {
+            expiresIn: "2h" 
+        });
+
+        return response.json({user, token, refreshToken});
+
+    },
+
+    //...........................................................................................................................
 
     async loginAdm(request, response) {
         let email = request.params.email;
         let senha = request.params.password;
         let modalidade = request.params.modId;
 
-        //console.log(email);
-        //console.log(senha);
-
         var encodedVal = crypto.createHash('md5').update(senha).digest('hex');
         const user = await connection('usuarios')
             .where('usrEmail', email)
             .where('usrPassword', encodedVal)
-            .select('usrId', 'usrNome', 'usrNivAcesso')
+            .select('usrId', 'usrNome', 'usrEmail', 'usrNivAcesso')
             .first();
           
         if (!user) {
             return response.status(400).json({ error: 'Não encontrou usuário com este ID'});
         } 
+        
         let usuario = user.usrId;
         let nivel = user.usrNivAcesso;
         let nivLiberado ='9';
@@ -68,7 +125,7 @@ module.exports = {
 
         return response.json(user);
     },
-    
+
     async dadUsuario (request, response) {        
         let id = request.params.idUsr;
         const usuario = await connection('usuarios')
@@ -76,35 +133,6 @@ module.exports = {
         .select('*');
 
         return response.json(usuario);
-    },
-
-    async modUsuario (request, response) {        
-        let id = request.params.idUsr;
-        const usuario = await connection('usrAceModal')
-        .where('aceUsrId', id)
-        .join('modalidades', 'modId', 'usrAceModal.aceModId')
-        .select(['usrAceModal.*', 'modalidades.modId', 'modalidades.modDescricao']);
-
-        return response.json(usuario);
-    },
-
-    async create(request, response) {
-        //console.log(request.body);
-        const {nome, cpf, nascimento, email, celular , password, usrNivAcesso} = request.body;
-        var status = 'A'; 
-        var senha = crypto.createHash('md5').update(password).digest('hex');
-        const [usrId] = await connection('usuarios').insert({
-            usrNome: nome, 
-            usrEmail: email, 
-            usrPassword: senha,
-            usrCelular: celular, 
-            usrCpf: cpf, 
-            usrNascimento: nascimento, 
-            usrNivAcesso,
-            usrStatus: status
-        });
-           
-        return response.json({usrId});
     },
 
     async newModUsuario(request, response) {
@@ -213,35 +241,22 @@ module.exports = {
         return response.status(204).send();
     },
 
-    async updPassword(request, response) {
-        let id = request.params.idUsr;         
-        const { password } = request.body;
- 
-        var senha = crypto.createHash('md5').update(password).digest('hex');
-        await connection('usuarios').where('usrId', id)   
-        .update({
-            usrSenha: senha,           
-        });
-           
-        return response.status(204).send();
-    },
-
     async updAdmPassword(request, response) {
       
         const { email, password, codSeguranca } = request.body;
- 
+
         let senha = crypto.createHash('md5').update(password).digest('hex');
         let segLimpa = '';
         await connection('usuarios')
         .where('usrEmail', email) 
         .where('usrCodSeguranca', codSeguranca)   
         .update({
-            usrSenha: senha,
+            usrPassword: senha,
             usrCodSeguranca: segLimpa,           
         });
            
         return response.status(204).send();
     },
-    
+
 };
 

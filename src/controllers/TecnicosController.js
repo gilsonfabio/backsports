@@ -1,5 +1,9 @@
 const crypto = require('crypto');
 const connection = require('../database/connection');
+require('dotenv/config');
+
+const jwt = require('jsonwebtoken');
+const {v4:uuidv4} = require ('uuid') ; 
 
 module.exports = {   
     async index (request, response) {
@@ -11,30 +15,54 @@ module.exports = {
     },    
         
     async signIn(request, response) {
-        let email = request.params.email;
-        let senha = request.params.password;
-
-        //console.log(email);
-        //console.log(senha);
-
-        var encodedVal = crypto.createHash('md5').update(senha).digest('hex');
-        const tecnico = await connection('tecnicos')
+        let email = request.body.email;
+        let senha = request.body.password;
+        let encodedVal = crypto.createHash('md5').update(senha).digest('hex');
+    
+        const user = await connection('tecnicos')
             .where('tecEmail', email)
             .where('tecPassword', encodedVal)
-            .select('tecId', 'tecNome')
+            .select('tecId', 'tecNome', 'tecEmail')
             .first();
           
-        if (!tecnico) {
+        if (!user) {
             return response.status(400).json({ error: 'Não encontrou usuário com este ID'});
         } 
 
-        return response.json(tecnico);
+        let refreshIdToken = uuidv4(); 
+                
+        let token = jwt.sign({ id: user.tecId, name: user.tecNome, email: user.tecEmail, nivel: '1' }, process.env.SECRET_JWT, {
+            expiresIn: "1h" 
+        });
+        let refreshToken = jwt.sign({ id: user.tecId, name: user.tecNome, email: user.tecEmail, nivel: '1'  }, process.env.SECRET_JWT_REFRESH, {
+            expiresIn: "2h" 
+        });
+
+        return response.json({user, token, refreshToken});
+
     },
-    
+
     async create(request, response) {
         
         //console.log(request.body);
         
+        const {nome, cpf, nascimento, email, celular , password} = request.body;
+        var status = 'A'; 
+        var senha = crypto.createHash('md5').update(password).digest('hex');
+        const [tecId] = await connection('tecnicos').insert({
+            tecNome: nome, 
+            tecEmail: email, 
+            tecPassword: senha,
+            tecCelular: celular, 
+            tecCpf: cpf, 
+            tecNascimento: nascimento, 
+            tecStatus: status
+        });
+           
+        return response.json({tecId});
+    },
+
+    async cadastra(request, response) {
         const {nome, cpf, nascimento, email, celular , password} = request.body;
         var status = 'A'; 
         var senha = crypto.createHash('md5').update(password).digest('hex');
@@ -80,11 +108,8 @@ module.exports = {
         return response.status(204).send();
     },
 
-    async solTecPassword (request, response) {
+    async solTecPassTec (request, response) {
         let emailUsuario = request.params.email;
-
-        //console.log('email solicitado:', emailUsuario)
-
         const user = await connection('tecnicos')
             .where('tecEmail', emailUsuario)
             .select('tecId', 'tecNome')
@@ -154,7 +179,7 @@ module.exports = {
           </html> 
             `,
         });
-        console.log(mailSent);
+        //console.log(mailSent);
         return response.status(200).send();  
     },
 
@@ -174,4 +199,22 @@ module.exports = {
            
         return response.status(204).send();
     },
+
+    async updTecPassTec(request, response) {
+      
+        const { email, password, codSeguranca } = request.body;
+ 
+        let senha = crypto.createHash('md5').update(password).digest('hex');
+        let segLimpa = '';
+        await connection('tecnicos')
+        .where('tecEmail', email) 
+        .where('tecCodSeguranca', codSeguranca)   
+        .update({
+            tecSenha: senha,
+            tecCodSeguranca: segLimpa,           
+        });
+           
+        return response.status(204).send();
+    },
+
 };
